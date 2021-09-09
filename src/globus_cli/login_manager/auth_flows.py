@@ -87,7 +87,26 @@ def exchange_code_and_store(auth_client, auth_code):
     """
     Finishes auth flow after code is gotten from command line or local server.
     Exchanges code for tokens and stores them.
+
+    A user may have a different identity this time than what they previously logged in
+    as, so to secure incremental auth flows, if the new tokens don't match the previous
+    identity we revoke them and instruct the user to logout before continuing.
     """
     adapter = token_storage_adapter()
     tkn = auth_client.oauth2_exchange_code_for_tokens(auth_code)
+    sub_new = tkn.decode_id_token()["sub"]
+    config_name = "auth_user_data"
+    auth_user_data = adapter.read_config(config_name)
+    if auth_user_data and sub_new != auth_user_data.get("sub"):
+        auth_client.oauth2_revoke_token(tkn["access_token"])
+        auth_client.oauth2_revoke_token(tkn["refresh_token"])
+        click.echo(
+            "Authorization failed: tried to login with an account that didn't match "
+            "existing credentials. If you meant to do this, first `globus logout`, "
+            "then try again.",
+            err=True,
+        )
+        click.get_current_context().exit(1)
+    if not auth_user_data:
+        adapter.store_config(config_name, {"sub": sub_new})
     adapter.store(tkn)
