@@ -5,6 +5,8 @@ import click
 from .local_server import LocalServerError, start_local_server
 from .tokenstore import internal_auth_client, token_storage_adapter
 
+_STORE_CONFIG_SUB_NAME = "auth_user_data"
+
 
 def do_link_auth_flow(scopes, *, session_params=None):
     """
@@ -95,8 +97,7 @@ def exchange_code_and_store(auth_client, auth_code):
     adapter = token_storage_adapter()
     tkn = auth_client.oauth2_exchange_code_for_tokens(auth_code)
     sub_new = tkn.decode_id_token()["sub"]
-    config_name = "auth_user_data"
-    auth_user_data = adapter.read_config(config_name)
+    auth_user_data = adapter.read_config(_STORE_CONFIG_SUB_NAME)
     if auth_user_data and sub_new != auth_user_data.get("sub"):
         auth_client.oauth2_revoke_token(tkn["access_token"])
         auth_client.oauth2_revoke_token(tkn["refresh_token"])
@@ -108,5 +109,5 @@ def exchange_code_and_store(auth_client, auth_code):
         )
         click.get_current_context().exit(1)
     if not auth_user_data:
-        adapter.store_config(config_name, {"sub": sub_new})
+        adapter.store_config(_STORE_CONFIG_SUB_NAME, {"sub": sub_new})
     adapter.store(tkn)
