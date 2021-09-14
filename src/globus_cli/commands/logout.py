@@ -7,7 +7,7 @@ from globus_cli.login_manager import (
     internal_native_client,
     token_storage_adapter,
 )
-from globus_cli.login_manager.auth_flows import _STORE_CONFIG_SUB_NAME
+from globus_cli.login_manager.auth_flows import _STORE_CONFIG_USERINFO
 from globus_cli.parsing import command
 from globus_cli.services.auth import get_auth_client
 
@@ -117,6 +117,6 @@ def logout_command(ignore_errors):
 
         adapter.remove_tokens_for_resource_server(rs)
 
-    adapter.remove_config(_STORE_CONFIG_SUB_NAME)
+    adapter.remove_config(_STORE_CONFIG_USERINFO)
 
     click.echo(_LOGOUT_EPILOG)

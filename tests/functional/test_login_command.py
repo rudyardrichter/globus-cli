@@ -7,7 +7,7 @@ from globus_sdk import NativeAppAuthClient
 
 from globus_cli.login_manager import LoginManager
 from globus_cli.login_manager.auth_flows import (
-    _STORE_CONFIG_SUB_NAME,
+    _STORE_CONFIG_USERINFO,
     exchange_code_and_store,
 )
 from tests.conftest import _mock_token_response_data
@@ -67,7 +67,7 @@ def test_login_gcs_different_identity(
     """
     load_api_fixtures("user_info_logout.yaml")
     test_token_storage.store_config(
-        _STORE_CONFIG_SUB_NAME, {"sub": str(uuid.UUID(int=0))}
+        _STORE_CONFIG_USERINFO, {"sub": str(uuid.UUID(int=0))}
     )
     mock_auth_client = mock.MagicMock(spec=NativeAppAuthClient)
     mock_auth_client.oauth2_exchange_code_for_tokens = lambda _: MockToken()
@@ -89,4 +89,4 @@ def test_login_gcs_different_identity(
         "globus_cli.commands.logout.internal_native_client", lambda: mock_auth_client
     )
     result = run_line("globus logout --yes")
-    assert test_token_storage.read_config(_STORE_CONFIG_SUB_NAME) is None
+    assert test_token_storage.read_config(_STORE_CONFIG_USERINFO) is None
