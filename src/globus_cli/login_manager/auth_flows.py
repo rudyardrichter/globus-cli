@@ -100,14 +100,14 @@ def exchange_code_and_store(auth_client, auth_code):
     auth_user_data = adapter.read_config(_STORE_CONFIG_USERINFO)
     if auth_user_data and sub_new != auth_user_data.get("sub"):
         try:
-            for resource_server, tokens in tkn.by_resource_server.items():
+            for tokens in tkn.by_resource_server.values():
                 auth_client.oauth2_revoke_token(tokens["access_token"])
                 auth_client.oauth2_revoke_token(tokens["refresh_token"])
         finally:
             click.echo(
-                "Authorization failed: tried to login with an account that didn't match "
-                "existing credentials. If you meant to do this, first `globus logout`, "
-                "then try again.",
+                "Authorization failed: tried to login with an account that didn't "
+                "match existing credentials. If you meant to do this, first `globus "
+                "logout`, then try again. ",
                 err=True,
             )
         click.get_current_context().exit(1)

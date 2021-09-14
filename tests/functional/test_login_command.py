@@ -1,5 +1,4 @@
 import uuid
-from collections import UserDict
 from unittest import mock
 
 import globus_sdk
@@ -30,9 +29,7 @@ def test_login_validates_token(run_line, mock_login_token_response):
         ac.oauth2_validate_token.assert_any_call(t_rt)
 
 
-class MockToken(UserDict):
-    access_token = "mock_access_token"
-    refresh_token = "mock_refresh_token"
+class MockToken:
     by_resource_server = {
         "auth.globus.org": _mock_token_response_data(
             "auth.globus.org",
@@ -40,12 +37,6 @@ class MockToken(UserDict):
             "urn:globus:auth:scope:auth.globus.org:view_identity_set",
         )
     }
-
-    def __init__(self):
-        self.data = {
-            "access_token": self.access_token,
-            "refresh_token": self.refresh_token,
-        }
 
     def decode_id_token(self, uuid_value: int = 1):
         return {"sub": str(uuid.UUID(int=uuid_value))}
@@ -79,8 +70,9 @@ def test_login_gcs_different_identity(
     assert "Authorization failed" in result.stderr
     mock_auth_client.oauth2_revoke_token.assert_has_calls(
         [
-            mock.call(MockToken.access_token),
-            mock.call(MockToken.refresh_token),
+            mock.call(t)
+            for v in MockToken.by_resource_server.values()
+            for t in (v["access_token"], v["refresh_token"])
         ],
         any_order=True,
     )
