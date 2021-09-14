@@ -35,7 +35,11 @@ class MockToken:
             "auth.globus.org",
             "openid profile email "
             "urn:globus:auth:scope:auth.globus.org:view_identity_set",
-        )
+        ),
+        "transfer.api.globus.org": _mock_token_response_data(
+            "transfer.api.globus.org",
+            "urn:globus:auth:scope:transfer.api.globus.org:all",
+        ),
     }
 
     def decode_id_token(self, uuid_value: int = 1):
