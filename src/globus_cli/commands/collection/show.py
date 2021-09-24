@@ -1,3 +1,5 @@
+from functools import reduce
+
 import click
 
 from globus_cli.endpointish import Endpointish
@@ -6,7 +8,7 @@ from globus_cli.parsing import collection_id_arg, command
 from globus_cli.principal_resolver import default_identity_id_resolver
 from globus_cli.services.gcs import connector_id_to_display_name, get_gcs_client
 from globus_cli.termio import FORMAT_TEXT_RECORD, formatted_print
-from globus_cli.utils import filter_fields, sorted_json_field
+from globus_cli.utils import sorted_json_field
 
 STANDARD_FIELDS = [
     ("Display Name", "display_name"),
@@ -76,12 +78,24 @@ def collection_show(login_manager, *, include_private_policies, collection_id):
 
     res = client.get_collection(collection_id, query_params=query_params)
 
+    def get_key(key):
+        if callable(key) and hasattr(key, "_filter_key"):
+            return [key._filter_key]
+        if isinstance(key, str):
+            return key.split(".")
+        return None
+
+    def has_field(fields):
+        return reduce(lambda acc, k: acc.get(k, {}), fields, res)
+
     # walk the list of all known fields and reduce the rendering to only look
     # for fields which are actually present
-    real_fields = filter_fields(fields, res)
-
     formatted_print(
         res,
         text_format=FORMAT_TEXT_RECORD,
-        fields=real_fields,
+        fields=[
+            (name, key)
+            for name, key in fields
+            if get_key(key) is None or has_field(get_key(key))
+        ],
     )
