@@ -1,5 +1,5 @@
 import json
-from typing import List, Optional, TextIO, Tuple
+from typing import List, Optional, TextIO, Tuple, cast
 
 import click
 import globus_sdk
@@ -56,7 +56,7 @@ def _looks_like_json(body: str) -> bool:
         return False
 
 
-def _detect_content_type(content_type: str, body: Optional[str]) -> Optional[str]:
+def detect_content_type(content_type: str, body: Optional[str]) -> Optional[str]:
     if content_type == "json":
         return "application/json"
     elif content_type == "form":
@@ -115,8 +115,9 @@ def api_command() -> None:
     """Make API calls to Globus services"""
 
 
-for service_name in _SERVICE_MAP:
-
+# note: this must be written as a separate call and not inlined into the loop body
+# this ensures that it acts as a closure over 'service_name'
+def build_command(service_name: str) -> click.Command:
     @command(
         service_name,
         help=f"""\
@@ -194,7 +195,7 @@ sends a 'GET' request to '{_get_url(service_name)}foo/bar'
 
         headers_d = {}
         if content_type != "none":
-            detected_content_type = _detect_content_type(content_type, body)
+            detected_content_type = detect_content_type(content_type, body)
             if detected_content_type is not None:
                 headers_d["Content-Type"] = detected_content_type
         for header_name, header_value in header:
@@ -209,4 +210,8 @@ sends a 'GET' request to '{_get_url(service_name)}foo/bar'
         )
         termio.formatted_print(res, text_format=_format_json)
 
-    api_command.add_command(service_command)
+    return cast(click.Command, service_command)
+
+
+for service_name in _SERVICE_MAP:
+    api_command.add_command(build_command(service_name))
