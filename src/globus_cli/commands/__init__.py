@@ -21,6 +21,8 @@ from globus_cli.commands.version import version_command
 from globus_cli.commands.whoami import whoami_command
 from globus_cli.parsing import main_group
 
+from .api import api_command
+
 
 @main_group
 def main() -> None:
@@ -43,6 +45,7 @@ main.add_command(update_command)
 main.add_command(login_command)
 main.add_command(logout_command)
 main.add_command(whoami_command)
+main.add_command(api_command)
 
 main.add_command(get_identities_command)
 main.add_command(ls_command)
