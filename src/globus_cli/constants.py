@@ -5,7 +5,7 @@ It should not depend on any other part of the globus-cli codebase.
 (If you need to import something else, maybe it's not simple enough to be a constant...)
 """
 
-__all__ = ["EXPLICIT_NULL"]
+__all__ = ("EXPLICIT_NULL",)
 
 
 class _ExplicitNullClass:
@@ -15,10 +15,10 @@ class _ExplicitNullClass:
     provided
     """
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "null"
 
 

@@ -19,15 +19,18 @@ whole paginated call to be walked at once.
 This also lets us keep the resolution work only in the text-mode printed output (and not
 applied on JSON output).
 """
+from typing import Iterable, Optional, Tuple, cast
+
 from globus_sdk import IdentityMap
 
 from globus_cli.login_manager import LoginManager
+from globus_cli.types import DATA_CONTAINER_T
 
 IDENTITY_URN_PREFIX = "urn:globus:auth:identity:"
 
 
 class InvalidPrincipalError(ValueError):
-    def __init__(self, value):
+    def __init__(self, value: str) -> None:
         self.value = value
 
 
@@ -51,24 +54,24 @@ class PrincipalResolver:
     creates a resolver which pulls Identity IDs from the field named "idfield"
     """
 
-    def __init__(self, key, use_urns=True):
+    def __init__(self, key: str, use_urns: bool = True) -> None:
         self.key = key
         self.use_urns = use_urns
-        self._idmap = None
+        self._idmap: Optional[IdentityMap] = None
 
     @property
-    def idmap(self):
+    def idmap(self) -> IdentityMap:
         if not self._idmap:
             self._idmap = IdentityMap(LoginManager().get_auth_client())
         return self._idmap
 
-    def _raw_id_from_object(self, obj):
+    def _raw_id_from_object(self, obj: DATA_CONTAINER_T) -> Tuple[str, str]:
         """
         returns a pair, (original, value)
 
         can raise InvalidPrincipalError if the input is malformed
         """
-        value = obj[self.key]
+        value: str = obj[self.key]
         # if not using URNs, the "raw ID" is just the value and it "always works"
         if not self.use_urns:
             return (value, value)
@@ -82,19 +85,19 @@ class PrincipalResolver:
         # original and the success indicator
         return (value, value[len(IDENTITY_URN_PREFIX) :])
 
-    def field(self, data):
+    def field(self, data: DATA_CONTAINER_T) -> str:
         try:
             original, value = self._raw_id_from_object(data)
         except InvalidPrincipalError as err:
             return err.value
         # try to do the lookup and get the "username" property
         # but default to the original value if this doesn't resolve
-        return self.idmap.get(value, {}).get("username", original)
+        return cast(str, self.idmap.get(value, {}).get("username", original))
 
     # TODO: In gcs-cli, page_callback is suported by the pretty printer. In globus-cli,
     # we should attach this to the PagingWrapper. The purpose is to get the map
     # populated on a per-page basis.
-    def page_callback(self, data_page):
+    def page_callback(self, data_page: Iterable[DATA_CONTAINER_T]) -> None:
         for item in data_page:
             try:
                 _original, value = self._raw_id_from_object(item)
