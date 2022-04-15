@@ -1,5 +1,5 @@
 import json
-from typing import List, Optional, TextIO, Tuple, cast
+from typing import List, Optional, TextIO, Tuple, Union, cast
 
 import click
 import globus_sdk
@@ -74,6 +74,23 @@ def detect_content_type(content_type: str, body: Optional[str]) -> Optional[str]
         raise NotImplementedError(f"did not recognize content-type '{content_type}'")
 
 
+def print_error_or_response(
+    data: Union[globus_sdk.GlobusHTTPResponse, globus_sdk.GlobusAPIError]
+) -> None:
+    if termio.is_verbose():
+        # if verbose, reconstruct the status line and show headers
+        click.echo(f"HTTP/1.1 {data.http_status} {data.http_reason}")
+        for key in data.headers:
+            click.echo(f"{key}: {data.headers[key]}")
+        click.echo()
+    # raw_text/text must be used here, to present the exact data which was sent, with
+    # whitespace and other detail preserved
+    if isinstance(data, globus_sdk.GlobusAPIError):
+        click.echo(data.raw_text)
+    else:
+        click.echo(data.text)
+
+
 _SERVICE_MAP = {
     "auth": LoginManager.AUTH_RS,
     "groups": LoginManager.GROUPS_RS,
@@ -104,10 +121,6 @@ def _get_url(service_name: str) -> str:
         "search": "https://search.api/globus.org/",
         "transfer": "https://transfer.api.globus.org/v0.10/",
     }[service_name]
-
-
-def _format_json(res: globus_sdk.GlobusHTTPResponse) -> None:
-    click.echo(json.dumps(res.data, indent=2, separators=(",", ": "), sort_keys=True))
 
 
 @group("api")
@@ -171,6 +184,20 @@ sends a 'GET' request to '{_get_url(service_name)}foo/bar'
         type=click.File("r"),
         help="A request body to include, as a file. Mutually exclusive with --body",
     )
+    @click.option(
+        "--allow-errors",
+        is_flag=True,
+        help="Allow error responses (4xx and 5xx) to be displayed without "
+        "triggering normal error handling",
+    )
+    @click.option(
+        "--allow-redirects",
+        "--location",
+        "-L",
+        is_flag=True,
+        help="If the server responds with a redirect (a 3xx response with a Location "
+        "header), follow the redirect. By default, redirects are not followed.",
+    )
     @mutex_option_group("--body", "--body-file")
     def service_command(
         *,
@@ -182,17 +209,44 @@ sends a 'GET' request to '{_get_url(service_name)}foo/bar'
         body: Optional[str],
         body_file: Optional[TextIO],
         content_type: str,
+        allow_errors: bool,
+        allow_redirects: bool,
     ):
+        # the overall flow of this command will be as follows:
+        # - prepare a client
+        # - prepare parameters for the request
+        # - send the request capturing any error raised
+        # - process the response
+        #   - on success or error with --allow-errors, print
+        #   - on error without --allow-errors, reraise
+
         client = _get_client(login_manager, service_name)
         client.app_name = version.app_name + " raw-api-command"
 
+        # Prepare Query Params
         query_params_d = {}
         for param_name, param_value in query_param:
             query_params_d[param_name] = param_value
 
+        # Prepare Request Body
+        # the value in 'body' will be passed in the request
+        # it is intentional that if neither `--body` nor `--body-file` is given,
+        # then `body=None`
         if body_file:
             body = body_file.read()
 
+        # Prepare Headers
+        # order of evaluation here matters
+        # first we process any Content-Type directive, especially for the default case
+        # of --content-type=auto
+        # after that, apply any manually provided headers, ensuring that they have
+        # higher precedence
+        #
+        # this also makes the behavior well-defined if a user passes
+        #
+        #   --content-type=json -H "Content-Type: application/octet-stream"
+        #
+        # the explicit header wins and this is intentional and internally documented
         headers_d = {}
         if content_type != "none":
             detected_content_type = detect_content_type(content_type, body)
@@ -201,14 +255,23 @@ sends a 'GET' request to '{_get_url(service_name)}foo/bar'
         for header_name, header_value in header:
             headers_d[header_name] = header_value
 
-        res = client.request(
-            method.upper(),
-            path,
-            query_params=query_params_d,
-            data=body,
-            headers=headers_d,
-        )
-        termio.formatted_print(res, text_format=_format_json)
+        # try sending and handle any error
+        try:
+            res = client.request(
+                method.upper(),
+                path,
+                query_params=query_params_d,
+                data=body,
+                headers=headers_d,
+                allow_redirects=allow_redirects,
+            )
+        except globus_sdk.GlobusAPIError as e:
+            if not allow_errors:
+                raise
+            # we're in the allow-errors case, so print the HTTP response
+            print_error_or_response(e)
+        else:
+            print_error_or_response(res)
 
     return cast(click.Command, service_command)
 
