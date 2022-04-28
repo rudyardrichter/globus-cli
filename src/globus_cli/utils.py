@@ -1,9 +1,11 @@
 import inspect
 import json
 import shlex
-from typing import Callable, Dict, Iterable, Iterator, List, Optional
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, TextIO, cast
 
 import click
+
+from globus_cli.types import DATA_CONTAINER_T, FIELD_LIST_T
 
 
 def get_current_option_help(
@@ -22,7 +24,7 @@ def supported_parameters(c: Callable) -> List[str]:
     return list(sig.parameters.keys())
 
 
-def format_list_of_words(first: str, *rest: str):
+def format_list_of_words(first: str, *rest: str) -> str:
     if not rest:
         return first
     if len(rest) == 1:
@@ -30,7 +32,9 @@ def format_list_of_words(first: str, *rest: str):
     return ", ".join([first] + list(rest[:-1])) + f", and {rest[-1]}"
 
 
-def format_plural_str(formatstr: str, pluralizable: Dict[str, str], use_plural: bool):
+def format_plural_str(
+    formatstr: str, pluralizable: Dict[str, str], use_plural: bool
+) -> str:
     """
     Format text with singular or plural forms of words. Use the singular forms as
     keys in the format string.
@@ -55,17 +59,27 @@ def format_plural_str(formatstr: str, pluralizable: Dict[str, str], use_plural: 
     return formatstr.format(**argdict)
 
 
-def sorted_json_field(key):
+class _FuncWithFilterKey:
+    _filter_key: str
+
+
+def sorted_json_field(
+    key: str,
+) -> Callable[[DATA_CONTAINER_T], str]:
     """Define sorted JSON output for text output containing complex types."""
 
-    def field_func(data):
+    def field_func(data: DATA_CONTAINER_T) -> str:
         return json.dumps(data[key], sort_keys=True)
 
-    field_func._filter_key = key
+    ret = cast(_FuncWithFilterKey, field_func)
+    ret._filter_key = key
     return field_func
 
 
-def filter_fields(check_fields, container):
+def filter_fields(
+    check_fields: FIELD_LIST_T,
+    container: DATA_CONTAINER_T,
+) -> FIELD_LIST_T:
     """
     Given a set of fields, this is a list of fields actually found in some containing
     object.
@@ -73,11 +87,17 @@ def filter_fields(check_fields, container):
     Always includes keyfunc fields unless they set the magic _filter_key attribute
     sorted_json_field above is a good example of doing this
     """
-    fields = []
-    for name, key in check_fields:
+    fields: FIELD_LIST_T = []
+    for field_to_check in check_fields:
+        # FormatField objects get included always
+        if not isinstance(field_to_check, tuple):
+            fields.append(field_to_check)
+            continue
+
+        name, key = field_to_check
         check_key = key
         if callable(key) and hasattr(key, "_filter_key"):
-            check_key = key._filter_key
+            check_key = cast(_FuncWithFilterKey, key)._filter_key
 
         # if it's a string lookup, check if it's contained (and skip if not)
         if isinstance(check_key, str):
@@ -105,31 +125,34 @@ class CLIStubResponse:
     GlobusHTTPResponse object.
     """
 
-    def __init__(self, data):
+    def __init__(self, data: DATA_CONTAINER_T) -> None:
         self.data = data
 
-    def __getitem__(self, key):
+    def __contains__(self, key: str) -> bool:
+        return key in self.data
+
+    def __getitem__(self, key: str) -> Any:
         return self.data[key]
 
 
 # wrap to add a `has_next()` method and `limit` param to a naive iterator
 class PagingWrapper:
-    def __init__(self, iterator: Iterator, limit: Optional[int] = None):
+    def __init__(self, iterator: Iterator[Any], limit: Optional[int] = None) -> None:
         self.iterator = iterator
         self.next = None
         self.limit = limit
         self._step()
 
-    def _step(self):
+    def _step(self) -> None:
         try:
             self.next = next(self.iterator)
         except StopIteration:
             self.next = None
 
-    def has_next(self):
+    def has_next(self) -> bool:
         return self.next is not None
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         yielded = 0
         while self.has_next() and (self.limit is None or yielded < self.limit):
             cur = self.next
@@ -138,7 +161,7 @@ class PagingWrapper:
             yielded += 1
 
 
-def shlex_process_stream(process_command, stream):
+def shlex_process_stream(process_command: click.Command, stream: TextIO) -> None:
     """
     Use shlex to process stdin line-by-line.
     Also prints help text.

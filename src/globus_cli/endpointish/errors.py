@@ -61,10 +61,10 @@ class WrongEndpointTypeError(ValueError):
 
 
 class ExpectedCollectionError(WrongEndpointTypeError):
-    def _get_expected_message(self):
+    def _get_expected_message(self) -> str:
         return f"Expected {self.endpoint_id} to be a collection ID."
 
 
 class ExpectedEndpointError(WrongEndpointTypeError):
-    def _get_expected_message(self):
+    def _get_expected_message(self) -> str:
         return f"Expected {self.endpoint_id} to be an endpoint ID."

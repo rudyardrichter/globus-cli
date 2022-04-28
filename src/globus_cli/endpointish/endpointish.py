@@ -42,7 +42,7 @@ class Endpointish:
         self,
         expect_types: Union[Tuple[EndpointType, ...], EndpointType],
         error_class: Type[WrongEndpointTypeError] = WrongEndpointTypeError,
-    ):
+    ) -> None:
         if isinstance(expect_types, EndpointType):
             expect_types = (expect_types,)
         if self.ep_type not in expect_types:
@@ -53,17 +53,17 @@ class Endpointish:
                 expect_types,
             )
 
-    def assert_is_gcsv5_collection(self):
+    def assert_is_gcsv5_collection(self) -> None:
         self.assert_ep_type(
             EndpointType.collections(), error_class=ExpectedCollectionError
         )
 
-    def assert_is_not_collection(self):
+    def assert_is_not_collection(self) -> None:
         self.assert_ep_type(
             EndpointType.non_collection_types(), error_class=ExpectedEndpointError
         )
 
-    def assert_is_traditional_endpoint(self):
+    def assert_is_traditional_endpoint(self) -> None:
         self.assert_ep_type(
             EndpointType.traditional_endpoints(), error_class=ExpectedEndpointError
         )
