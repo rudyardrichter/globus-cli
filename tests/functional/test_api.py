@@ -14,12 +14,8 @@ def test_api_command_get(run_line, service_name, is_error_response):
         )
     )
 
-    result = run_line(f"globus api {service_name}  get /foo")
-    assert (
-        result.output
-        == """\
-{
-  "foo": "bar"
-}
-"""
+    result = run_line(
+        ["globus", "api", service_name, "get", "/foo"]
+        + (["--no-retry", "--allow-errors"] if is_error_response else [])
     )
+    assert result.output == '{"foo": "bar"}\n'

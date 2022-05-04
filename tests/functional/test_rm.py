@@ -1,20 +1,7 @@
 import json
 
-import pytest
 import responses
 from globus_sdk._testing import load_response_set
-
-
-@pytest.fixture
-def patch_sleep(monkeypatch):
-    sleep_calls = []
-
-    def mock_sleep(*args, **kwargs):
-        sleep_calls.append((args, kwargs))
-
-    monkeypatch.setattr("time.sleep", mock_sleep)
-
-    return sleep_calls
 
 
 def _get_delete_call():
@@ -87,7 +74,7 @@ def test_ignore_missing(run_line, go_ep1_id):
     assert sent_data["ignore_missing"] is True
 
 
-def test_timeout(run_line, patch_sleep, go_ep1_id):
+def test_timeout(run_line, go_ep1_id):
     """
     If a task is retrying without success, `rm` should wait and eventually time out.
     """
@@ -102,7 +89,7 @@ def test_timeout(run_line, patch_sleep, go_ep1_id):
     assert "Task has yet to complete after 2 seconds" in result.stderr
 
 
-def test_timeout_explicit_status(run_line, patch_sleep, go_ep1_id):
+def test_timeout_explicit_status(run_line, go_ep1_id):
     """
     As above, submit a task which sits queued and times out.
     Confirms rm exits STATUS after given timeout, where

@@ -198,6 +198,7 @@ sends a 'GET' request to '{_get_url(service_name)}foo/bar'
         help="If the server responds with a redirect (a 3xx response with a Location "
         "header), follow the redirect. By default, redirects are not followed.",
     )
+    @click.option("--no-retry", is_flag=True, help="Disable built-in request retries")
     @mutex_option_group("--body", "--body-file")
     def service_command(
         *,
@@ -211,6 +212,7 @@ sends a 'GET' request to '{_get_url(service_name)}foo/bar'
         content_type: str,
         allow_errors: bool,
         allow_redirects: bool,
+        no_retry: bool,
     ):
         # the overall flow of this command will be as follows:
         # - prepare a client
@@ -222,6 +224,8 @@ sends a 'GET' request to '{_get_url(service_name)}foo/bar'
 
         client = _get_client(login_manager, service_name)
         client.app_name = version.app_name + " raw-api-command"
+        if no_retry:
+            client.transport.max_retries = 0
 
         # Prepare Query Params
         query_params_d = {}

@@ -21,6 +21,12 @@ log = logging.getLogger(__name__)
 
 
 @pytest.fixture(autouse=True)
+def mocksleep():
+    with mock.patch("time.sleep") as m:
+        yield m
+
+
+@pytest.fixture(autouse=True)
 def set_login_manager_testmode():
     globus_cli.login_manager.LoginManager._TEST_MODE = True
 
