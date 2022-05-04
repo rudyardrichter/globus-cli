@@ -28,6 +28,10 @@ release:
 	git tag -s "$(CLI_VERSION)" -m "v$(CLI_VERSION)"
 	tox -e publish-release
 
+.PHONY: update-dependencies
+update-dependencies:
+	python ./scripts/update_dependencies.py
+
 .PHONY: clean
 clean:
 	rm -rf .venv .tox dist build *.egg-info
