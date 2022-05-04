@@ -36,7 +36,7 @@ repos:
         - types-requests
         - types-jmespath
         - click
-        - 'globus-sdk==3.7.0'
+        - 'globus-sdk==3.8.0'
 - repo: local
   hooks:
     - id: fix-changelog
