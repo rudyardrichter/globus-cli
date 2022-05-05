@@ -65,14 +65,18 @@ def test_header_parsing(runner):
         x, y = h
         click.echo(f"x={x} y={y}")
 
+    # simple
+    result = runner.invoke(foo, ["-h", "k:v"])
+    assert result.output == "x=k y=v\n"
+    # with leading space stripped
     result = runner.invoke(foo, ["-h", "k: v"])
     assert result.output == "x=k y=v\n"
+    # colons after the first are preserved
+    result = runner.invoke(foo, ["-h", "k:v:v2"])
+    assert result.output == "x=k y=v:v2\n"
 
+    # no colon -> parse error
     result = runner.invoke(foo, ["-h", "kv"])
-    assert result.exit_code == 2
-    assert "invalid header param" in result.output
-
-    result = runner.invoke(foo, ["-h", "k:v"])  # missing space
     assert result.exit_code == 2
     assert "invalid header param" in result.output
 

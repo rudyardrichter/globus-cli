@@ -25,15 +25,17 @@ class QueryParamType(click.ParamType):
 
 class HeaderParamType(click.ParamType):
     def get_metavar(self, param):
-        return '"Key: Value"'
+        return "Key:Value"
 
     def convert(self, value, param, ctx):
         value = super().convert(value, param, ctx)
         if value is None:
             return None
-        if ": " not in value:
+        if ":" not in value:
             self.fail("invalid header param", param=param, ctx=ctx)
-        left, right = value.split(": ", 1)
+        left, right = value.split(":", 1)
+        if right.startswith(" "):
+            right = right[1:]
         return (left, right)
 
 
