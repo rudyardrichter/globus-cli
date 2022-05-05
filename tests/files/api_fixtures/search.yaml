@@ -4,6 +4,7 @@ metadata:
   error_index_id: 2ac1f660-298b-432f-89ae-c1299ad4233e
   task_id: 49869cb5-4fca-4f19-bbb6-8b0a18bd1f95
   pending_task_id: cfdedea7-9c52-42cb-84a6-6daa8217f772
+  delete_by_subject_task_id: 0c21ee5d-e847-415f-831f-b325af794716
   index_list_data:
     "6f831ac8-4c41-4812-b383-6fb04f8b9f9f":
       display_name: "example_cookery"
@@ -27,6 +28,8 @@ metadata:
     "MDQ0ODkz":
       role: writer
       value: "Globus Group (9da26beb-33f5-4e1a-b9f6-a44a624c4ddd)"
+  subject: "https://en.wikipedia.org/wiki/Salsa_verde"
+  multi_entry_subject: "multi-entry-subject"
 
 search:
   - path: /v1/index/6f831ac8-4c41-4812-b383-6fb04f8b9f9f/search
@@ -467,4 +470,124 @@ search:
           "role_name": "writer"
         },
         "success": true
+      }
+  - path: /v1/index/6f831ac8-4c41-4812-b383-6fb04f8b9f9f/subject
+    query_params:
+      subject: "https://en.wikipedia.org/wiki/Salsa_verde"
+    method: get
+    json:
+      {
+        "entries": [
+          {
+            "content": {
+              "cuisine": [
+                "mexican"
+              ],
+              "handle": "salsa-verde",
+              "ingredients": [
+                {
+                  "amount": {
+                    "number": 10
+                  },
+                  "default": "tomatillo",
+                  "preparation": "simmer 20 minutes",
+                  "type": "fruit"
+                },
+                {
+                  "amount": {
+                    "number": 2
+                  },
+                  "default": "serrano pepper",
+                  "preparation": "seeded",
+                  "substitutes": [
+                    "jalapeno",
+                    "thai bird chili"
+                  ],
+                  "type": "fruit"
+                },
+                {
+                  "amount": {
+                    "number": 2,
+                    "unit": "clove"
+                  },
+                  "default": "garlic",
+                  "type": "vegetable"
+                },
+                {
+                  "amount": {
+                    "number": 0.5
+                  },
+                  "default": "yellow onion",
+                  "type": "vegetable"
+                },
+                {
+                  "amount": {
+                    "number": 2,
+                    "unit": "tsp"
+                  },
+                  "default": "salt",
+                  "type": "spice"
+                },
+                {
+                  "amount": {
+                    "number": 2,
+                    "unit": "tbsp"
+                  },
+                  "default": "coriander",
+                  "preparation": "ground",
+                  "subsitutes": [
+                    "cumin"
+                  ],
+                  "type": "spice"
+                }
+              ],
+              "keywords": [
+                "salsa",
+                "tomatillo",
+                "coriander",
+                "serrano pepper"
+              ],
+              "origin": {
+                "author": "Diana Kennedy",
+                "title": "Regional Mexican Cooking",
+                "type": "book"
+              }
+            },
+            "entry_id": null,
+            "matched_principal_sets": []
+          }
+        ],
+        "subject": "https://en.wikipedia.org/wiki/Salsa_verde"
+      }
+  - path: /v1/index/6f831ac8-4c41-4812-b383-6fb04f8b9f9f/subject
+    query_params:
+      subject: "multi-entry-subject"
+    method: get
+    json:
+      {
+        "entries": [
+          {
+            "content": {
+              "foo": "bar"
+            },
+            "entry_id": "foo",
+            "matched_principal_sets": []
+          },
+          {
+            "content": {
+              "bar": "baz"
+            },
+            "entry_id": "bar",
+            "matched_principal_sets": []
+          }
+        ],
+        "subject": "multi-entry-subject"
+      }
+  - path: /v1/index/6f831ac8-4c41-4812-b383-6fb04f8b9f9f/subject
+    query_params:
+      subject: "https://en.wikipedia.org/wiki/Salsa_verde"
+    method: delete
+    json:
+      {
+        "task_id": "0c21ee5d-e847-415f-831f-b325af794716"
       }
