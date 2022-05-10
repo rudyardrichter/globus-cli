@@ -10,6 +10,7 @@ import pytest
 import responses
 from click.testing import CliRunner
 from globus_sdk._testing import register_response_set
+from globus_sdk.scopes import TimerScopes
 from globus_sdk.tokenstorage import SQLiteAdapter
 from globus_sdk.transport import RequestsTransport
 from ruamel.yaml import YAML
@@ -72,6 +73,9 @@ def mock_login_token_response():
         ),
         "search.api.globus.org": _mock_token_response_data(
             "search.api.globus.org", "urn:globus:auth:scope:search.api.globus.org:all"
+        ),
+        TimerScopes.resource_server: _mock_token_response_data(
+            TimerScopes.resource_server, TimerScopes.timer
         ),
     }
     return mock_token_res
