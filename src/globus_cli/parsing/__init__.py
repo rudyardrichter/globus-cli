@@ -22,6 +22,7 @@ from .param_types import (
     StringOrNull,
     TaskPath,
     UrlOrNull,
+    URLType,
     nullable_multi_callback,
 )
 
@@ -43,6 +44,7 @@ __all__ = [
     "StringOrNull",
     "TaskPath",
     "UrlOrNull",
+    "URLType",
     "mutex_option_group",
     "nullable_multi_callback",
     "one_use_option",
