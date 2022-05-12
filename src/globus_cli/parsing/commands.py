@@ -32,10 +32,10 @@ class GlobusCommand(click.Command):
 
     AUTOMATIC_ACTIVATION_HELPTEXT = """=== Automatic Endpoint Activation
 
-This command requires all endpoints it uses to be activated. It will attempt to
-auto-activate any endpoints that are not active, but if auto-activation fails,
-you will need to manually activate the endpoint. See 'globus endpoint activate'
-for more details."""
+    This command requires all endpoints it uses to be activated. It will attempt to
+    auto-activate any endpoints that are not active, but if auto-activation fails,
+    you will need to manually activate the endpoint. See 'globus endpoint activate'
+    for more details."""
 
     def __init__(self, *args, **kwargs):
         self.adoc_skip = kwargs.pop("adoc_skip", False)
