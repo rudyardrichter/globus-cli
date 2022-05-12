@@ -120,7 +120,7 @@ def _get_url(service_name: str) -> str:
     return {
         "auth": "https://auth.globus.org/",
         "groups": "https://groups.api.globus.org/v2/",
-        "search": "https://search.api/globus.org/",
+        "search": "https://search.api.globus.org/",
         "transfer": "https://transfer.api.globus.org/v0.10/",
     }[service_name]
 
