@@ -4,6 +4,7 @@
 based originally on click-man, but significantly specialized for the globus-cli
 """
 import os
+import textwrap
 import time
 
 import click
@@ -114,7 +115,7 @@ class AdocPage:
     def __init__(self, ctx):
         self.commandname = ctx.command_path
         self.short_help = ctx.command.get_short_help_str()
-        self.description = ctx.command.help.replace("\b\n", "")
+        self.description = textwrap.dedent(ctx.command.help).replace("\b\n", "")
         self.synopsis = ctx.command.adoc_synopsis or _format_synopsis(
             ctx.command.collect_usage_pieces(ctx)
         )
