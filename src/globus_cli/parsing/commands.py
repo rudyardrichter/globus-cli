@@ -8,6 +8,7 @@ and all other components will be hidden internals.
 
 import logging
 import sys
+from typing import List
 
 import click
 
@@ -58,6 +59,18 @@ class GlobusCommand(click.Command):
             return super().invoke(ctx)
         finally:
             log.debug("command invoke exit")
+
+    def parse_args(self, ctx: click.Context, args: List[str]) -> List[str]:
+        # args will be consumed, so check it before super()
+        had_args = bool(args)
+        try:
+            return super().parse_args(ctx, args)
+        except click.MissingParameter as e:
+            if not had_args:
+                click.secho(e.format_message(), fg="yellow", err=True)
+                click.echo("\n" + ctx.get_help(), err=True)
+                ctx.exit(2)
+            raise
 
 
 class GlobusCommandEnvChecks(GlobusCommand):
@@ -114,7 +127,7 @@ class TopLevelGroup(GlobusCommandGroup):
 
 
 def main_group(f):
-    f = click.group("globus", cls=TopLevelGroup, help=f.__doc__)(f)
+    f = click.group("globus", cls=TopLevelGroup)(f)
     f = common_options(f)
     f = print_completer_option(f)
     return f
@@ -134,8 +147,6 @@ def command(*args, **kwargs):
     disable_opts = kwargs.pop("disable_options", [])
 
     def _inner_decorator(func):
-        if "help" not in kwargs:
-            kwargs["help"] = func.__doc__
         if "cls" not in kwargs:
             if kwargs.get("skip_env_checks", False) is True:
                 kwargs["cls"] = GlobusCommand
@@ -165,8 +176,6 @@ def group(*args, **kwargs):
 
     def inner_decorator(f):
         f = click.group(*args, cls=GlobusCommandGroup, **kwargs)(f)
-        if "help" not in kwargs:
-            kwargs["help"] = f.__doc__
         f = common_options(disable_options=disable_opts)(f)
         return f
 

@@ -36,7 +36,7 @@ def test_command_missing_args(run_line):
     Runs get-identities without values, confirms exit_code 2
     """
     result = run_line("globus get-identities", assert_exit_code=2)
-    assert "Error: Missing argument" in result.stderr
+    assert "Missing argument" in result.stderr
 
 
 def test_invalid_command(run_line):
