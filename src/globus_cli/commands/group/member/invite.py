@@ -16,6 +16,11 @@ INVITED_USER_FIELDS: FIELD_LIST_T = [
 @click.argument("group_id", type=click.UUID)
 @click.argument("user", type=IdentityType())
 @click.option(
+    "--provision-identity",
+    is_flag=True,
+    help="The invited identity will be provisioned if it does not exist.",
+)
+@click.option(
     "--role",
     type=click.Choice(("member", "manager", "admin")),
     default="member",
@@ -24,7 +29,12 @@ INVITED_USER_FIELDS: FIELD_LIST_T = [
 )
 @LoginManager.requires_login(LoginManager.GROUPS_RS)
 def member_invite(
-    *, group_id: str, user: ParsedIdentity, role: str, login_manager: LoginManager
+    *,
+    group_id: str,
+    user: ParsedIdentity,
+    provision_identity: bool,
+    role: str,
+    login_manager: LoginManager,
 ):
     """
     Invite a user to a group.
@@ -34,7 +44,9 @@ def member_invite(
     """
     auth_client = login_manager.get_auth_client()
     groups_client = login_manager.get_groups_client()
-    identity_id = auth_client.maybe_lookup_identity_id(user.value)
+    identity_id = auth_client.maybe_lookup_identity_id(
+        user.value, provision=provision_identity
+    )
     if not identity_id:
         raise click.UsageError(f"Couldn't determine identity from user value: {user}")
     actions = {"invite": [{"identity_id": identity_id, "role": role}]}
