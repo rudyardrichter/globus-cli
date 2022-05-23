@@ -8,6 +8,7 @@ and all other components will be hidden internals.
 
 import logging
 import sys
+from shutil import get_terminal_size
 from typing import List
 
 import click
@@ -51,6 +52,15 @@ class GlobusCommand(click.Command):
             kwargs["help"] = helptext.format(
                 AUTOMATIC_ACTIVATION=self.AUTOMATIC_ACTIVATION_HELPTEXT
             )
+        if "context_settings" not in kwargs:
+            kwargs["context_settings"] = {}
+        if "max_content_width" not in kwargs["context_settings"]:
+            try:
+                cols = get_terminal_size(fallback=(80, 20)).columns
+                content_width = cols if cols < 100 else int(0.8 * cols)
+                kwargs["context_settings"]["max_content_width"] = content_width
+            except OSError:
+                pass
         super().__init__(*args, **kwargs)
 
     def invoke(self, ctx):
