@@ -1,10 +1,14 @@
-import re
 import os
+import re
 
 import click
 import pytest
 
-from globus_cli.termio import FORMAT_TEXT_RECORD_LIST, formatted_print, term_is_interactive
+from globus_cli.termio import (
+    FORMAT_TEXT_RECORD_LIST,
+    formatted_print,
+    term_is_interactive,
+)
 
 
 @pytest.mark.parametrize(
