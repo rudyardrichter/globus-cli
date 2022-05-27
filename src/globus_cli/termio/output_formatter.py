@@ -286,7 +286,11 @@ def formatted_print(
             colon_formatted_print(data, fields)
         elif text_format == FORMAT_TEXT_RECORD_LIST:
             _assert_fields()
-            if not isinstance(data, list):
+            try:
+                if isinstance(data, dict):
+                    raise TypeError("dict in FORMAT_TEXT_RECORD_LIST case")
+                iter(data)
+            except TypeError:
                 raise ValueError("only lists can be output in text record list format")
             first = True
             for record in data:
