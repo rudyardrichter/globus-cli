@@ -1,8 +1,14 @@
 import os
+import re
 
+import click
 import pytest
 
-from globus_cli.termio import term_is_interactive
+from globus_cli.termio import (
+    FORMAT_TEXT_RECORD_LIST,
+    formatted_print,
+    term_is_interactive,
+)
 
 
 @pytest.mark.parametrize(
@@ -30,3 +36,20 @@ def test_term_interactive(ps1, force_flag, expect, monkeypatch):
         monkeypatch.delitem(os.environ, "GLOBUS_CLI_INTERACTIVE", raising=False)
 
     assert term_is_interactive() == expect
+
+
+def test_format_record_list(capsys):
+    data = [
+        {"bird": "Killdeer", "wingspan": 46},
+        {"bird": "Franklin's Gull", "wingspan": 91},
+    ]
+    fields = [("Bird", "bird"), ("Wingspan", "wingspan")]
+    with click.Context(click.Command("fake-command")) as _:
+        formatted_print(data, text_format=FORMAT_TEXT_RECORD_LIST, fields=fields)
+    output = capsys.readouterr().out
+    # Should have:
+    # 5 lines in total,
+    assert len(output.splitlines()) == 5
+    # and one empty line between the records
+    assert "" in output.splitlines()
+    assert re.match(r"Bird:\s+Killdeer", output)

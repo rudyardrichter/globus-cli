@@ -13,6 +13,7 @@ FORMAT_SILENT = "silent"
 FORMAT_JSON = "json"
 FORMAT_TEXT_TABLE = "text_table"
 FORMAT_TEXT_RECORD = "text_record"
+FORMAT_TEXT_RECORD_LIST = "text_record_list"
 FORMAT_TEXT_RAW = "text_raw"
 FORMAT_TEXT_CUSTOM = "text_custom"
 
@@ -213,8 +214,9 @@ def formatted_print(
     """
     A generic output formatter. Consumes the following pieces of data:
 
-    ``response_data`` is a dict or GlobusResponse object. It contains either an
-    API response or synthesized data for printing.
+    ``response_data`` is a dict, list (if the ``text_format`` is
+    ``FORMAT_TEXT_RECORD_LIST``), or GlobusResponse object. It contains either an API
+    response or synthesized data for printing.
 
     ``simple_text`` is a text override -- normal printing is skipped and this
     string is printed instead (text output only)
@@ -282,6 +284,17 @@ def formatted_print(
         elif text_format == FORMAT_TEXT_RECORD:
             _assert_fields()
             colon_formatted_print(data, fields)
+        elif text_format == FORMAT_TEXT_RECORD_LIST:
+            _assert_fields()
+            if not isinstance(data, list):
+                raise ValueError("only lists can be output in text record list format")
+            first = True
+            for record in data:
+                # add empty line between records after the first
+                if not first:
+                    click.echo()
+                first = False
+                colon_formatted_print(record, fields)
         elif text_format == FORMAT_TEXT_RAW:
             click.echo(data)
         elif text_format == FORMAT_TEXT_CUSTOM:
