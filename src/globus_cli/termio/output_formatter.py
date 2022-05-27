@@ -285,6 +285,8 @@ def formatted_print(
         elif text_format == FORMAT_TEXT_RAW:
             click.echo(data)
         elif text_format == FORMAT_TEXT_CUSTOM:
+            # _custom_text_formatter is set along with FORMAT_TEXT_CUSTOM
+            assert _custom_text_formatter
             _custom_text_formatter(data)
 
         # if there's an epilog, print it after any text
