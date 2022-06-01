@@ -103,8 +103,7 @@ def format_option(f: Callable) -> Callable:
         "--jq",
         help=(
             "A JMESPath expression to apply to json output. "
-            "Takes precedence over any specified '--format' and forces "
-            "the format to be json processed by this expression"
+            "Forces the format to be json processed by this expression"
         ),
         expose_value=False,
         callback=jmespath_callback,
