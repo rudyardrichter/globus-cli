@@ -5,7 +5,6 @@ from urllib.parse import urlparse
 
 import click
 
-
 # List of datetime formats accepted as input. (`%z` means timezone.)
 DATETIME_FORMATS = [
     "%Y-%m-%d",
