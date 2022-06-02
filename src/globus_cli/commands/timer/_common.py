@@ -3,6 +3,19 @@ import re
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
+import click
+
+
+# List of datetime formats accepted as input. (`%z` means timezone.)
+DATETIME_FORMATS = [
+    "%Y-%m-%d",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%d %H:%M:%S%z",
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%dT%H:%M:%S%z",
+    "%Y-%m-%dT%H:%M:%S.%f%z",
+]
+
 
 def _get_stop_date(data: Dict[str, Any]) -> Optional[str]:
     if not data["stop_after"]:
@@ -38,9 +51,7 @@ def _get_interval(data: Dict[str, Any]) -> Optional[str]:
 def isoformat_to_local(utc_str: Optional[str]) -> Optional[str]:
     if not utc_str:
         return None
-    # We would like to do this, which is available >=3.7:
-    # TODO: have to replace this with something
-    date = datetime.datetime.fromisoformat(utc_str)
+    date = click.DateTime(formats=DATETIME_FORMATS)(utc_str)
     if date.tzinfo is None:
         return date.strftime("%Y-%m-%d %H:%M")
     return date.astimezone(tz=None).strftime("%Y-%m-%d %H:%M")
@@ -66,16 +77,6 @@ Start time for the job. Defaults to current time. (The example above shows the a
 formats using Python's datetime formatters; see:
 https://docs.python.org/3/library/datetime.html #strftime-and-strptime-format-codes
 """
-
-# List of datetime formats accepted as input. (`%z` means timezone.)
-DATETIME_FORMATS = [
-    "%Y-%m-%d",
-    "%Y-%m-%dT%H:%M:%S",
-    "%Y-%m-%dT%H:%M:%S%z",
-    "%Y-%m-%d %H:%M:%S",
-    "%Y-%m-%d %H:%M:%S%z",
-]
-
 
 timedelta_regex = re.compile(
     r"\s*((?P<weeks>\d+)w)?"
