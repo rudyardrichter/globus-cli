@@ -42,7 +42,7 @@ setup(
     package_dir={"": "src"},
     python_requires=">=3.6",
     install_requires=[
-        "globus-sdk==3.8.0",
+        "globus-sdk==3.9.0",
         "click>=8.0.0,<9",
         "jmespath==0.10.0",
         # these are dependencies of the SDK, but they are used directly in the CLI
