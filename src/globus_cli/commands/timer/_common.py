@@ -50,6 +50,8 @@ def _get_interval(data: Dict[str, Any]) -> Optional[str]:
 def isoformat_to_local(utc_str: Optional[str]) -> Optional[str]:
     if not utc_str:
         return None
+    if len(utc_str) >= 3 and utc_str[-3] == ":":
+        utc_str = utc_str[:-3] + utc_str[-2:]
     date = click.DateTime(formats=DATETIME_FORMATS)(utc_str)
     if date.tzinfo is None:
         return cast(str, date.strftime("%Y-%m-%d %H:%M"))
