@@ -1,6 +1,6 @@
 import datetime
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 from urllib.parse import urlparse
 
 import click
@@ -52,8 +52,8 @@ def isoformat_to_local(utc_str: Optional[str]) -> Optional[str]:
         return None
     date = click.DateTime(formats=DATETIME_FORMATS)(utc_str)
     if date.tzinfo is None:
-        return date.strftime("%Y-%m-%d %H:%M")
-    return date.astimezone(tz=None).strftime("%Y-%m-%d %H:%M")
+        return cast(str, date.strftime("%Y-%m-%d %H:%M"))
+    return cast(str, date.astimezone(tz=None).strftime("%Y-%m-%d %H:%M"))
 
 
 JOB_FORMAT_FIELDS = [
