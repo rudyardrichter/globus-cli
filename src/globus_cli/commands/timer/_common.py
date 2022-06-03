@@ -1,9 +1,7 @@
 import datetime
 import re
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, Optional
 from urllib.parse import urlparse
-
-import click
 
 # List of datetime formats accepted as input. (`%z` means timezone.)
 DATETIME_FORMATS = [
@@ -47,15 +45,26 @@ def _get_interval(data: Dict[str, Any]) -> Optional[str]:
     return str(datetime.timedelta(seconds=data["interval"]))
 
 
-def isoformat_to_local(utc_str: Optional[str]) -> Optional[str]:
+def isoformat_to_local(
+    utc_str: Optional[str], localtz: Optional[datetime.tzinfo] = None
+) -> Optional[str]:
     if not utc_str:
         return None
     if len(utc_str) >= 3 and utc_str[-3] == ":":
         utc_str = utc_str[:-3] + utc_str[-2:]
-    date = click.DateTime(formats=DATETIME_FORMATS)(utc_str)
+    if utc_str.endswith("Z"):  # bare Z offset doesn't work in 3.6
+        utc_str = utc_str[:-1] + "+0000"
+    date = None
+    for fmt in DATETIME_FORMATS:
+        try:
+            date = datetime.datetime.strptime(utc_str, fmt)
+        except ValueError:
+            continue
+    if not date:
+        raise ValueError(f"date string does not match any expected formats: {utc_str}")
     if date.tzinfo is None:
-        return cast(str, date.strftime("%Y-%m-%d %H:%M"))
-    return cast(str, date.astimezone(tz=None).strftime("%Y-%m-%d %H:%M"))
+        return date.strftime("%Y-%m-%d %H:%M")
+    return date.astimezone(tz=localtz).strftime("%Y-%m-%d %H:%M")
 
 
 JOB_FORMAT_FIELDS = [
