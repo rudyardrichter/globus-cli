@@ -63,7 +63,7 @@ def isoformat_to_local(
     if not date:
         raise ValueError(f"date string does not match any expected formats: {utc_str}")
     if date.tzinfo is None:
-        return date.strftime("%Y-%m-%d %H:%M")
+        return date.strftime("%Y-%m-%d %H:%M:%S")
     return date.astimezone(tz=localtz).strftime("%Y-%m-%d %H:%M")
 
 
@@ -89,9 +89,14 @@ https://docs.python.org/3/library/datetime.html #strftime-and-strptime-format-co
 """
 
 timedelta_regex = re.compile(
-    r"\s*((?P<weeks>\d+)w)?"
-    r"\s*((?P<days>\d+)d)?"
-    r"\s*((?P<hours>\d+)h)?"
-    r"\s*((?P<minutes>\d+)m)?"
-    r"\s*((?P<seconds>\d+)s?)?"
+    r"""\
+    ^
+    ((?P<weeks>\d+)w)?
+    ((?P<days>\d+)d)?
+    ((?P<hours>\d+)h)?
+    ((?P<minutes>\d+)m)?
+    ((?P<seconds>\d+)s?)?
+    $
+    """,
+    flags=re.VERBOSE
 )
