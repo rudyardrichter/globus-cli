@@ -27,7 +27,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
         # we do not want a large number of windows and macos builds, so
         # enumerate them explicitly
         include:
@@ -78,7 +78,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
         with:
-          python-version: "3.6"
+          python-version: "3.7"
       - name: install tox
         run: python -m pip install -U tox
       - name: test
@@ -87,7 +87,7 @@ jobs:
   test-sdk-main:
     strategy:
       matrix:
-        python-version: ["3.6", "3.10"]
+        python-version: ["3.7", "3.10"]
     runs-on: ubuntu-latest
     name: "sdk-main"
     steps:
@@ -100,13 +100,13 @@ jobs:
 
   # use the oldest python version we support for this build
   test-ancient-virtualenv:
-    name: "test on py3.6, using old virtualenv"
+    name: "test on py3.7, using old virtualenv"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
         with:
-          python-version: 3.6
+          python-version: "3.7"
       - name: Install Requirements
         run: python -m pip install -U pip setuptools tox
       - name: Downgrade Virtualenv

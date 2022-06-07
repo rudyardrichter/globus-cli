@@ -40,7 +40,7 @@ setup(
     version=parse_version(),
     packages=find_packages("src"),
     package_dir={"": "src"},
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     install_requires=[
         "globus-sdk==3.9.0",
         "click>=8.0.0,<9",
@@ -65,7 +65,6 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: POSIX",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
