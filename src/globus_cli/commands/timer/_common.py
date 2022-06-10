@@ -98,5 +98,5 @@ timedelta_regex = re.compile(
     ((?P<seconds>\d+)s?)?
     $
     """,
-    flags=re.VERBOSE
+    flags=re.VERBOSE,
 )
