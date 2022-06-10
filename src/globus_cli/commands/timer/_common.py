@@ -50,21 +50,11 @@ def isoformat_to_local(
 ) -> Optional[str]:
     if not utc_str:
         return None
-    if len(utc_str) >= 3 and utc_str[-3] == ":":
-        utc_str = utc_str[:-3] + utc_str[-2:]
-    if utc_str.endswith("Z"):  # bare Z offset doesn't work in 3.6
-        utc_str = utc_str[:-1] + "+0000"
-    date = None
-    for fmt in DATETIME_FORMATS:
-        try:
-            date = datetime.datetime.strptime(utc_str, fmt)
-        except ValueError:
-            continue
-    if not date:
-        raise ValueError(f"date string does not match any expected formats: {utc_str}")
+    # let this raise ValueError
+    date = datetime.datetime.fromisoformat(utc_str)
     if date.tzinfo is None:
         return date.strftime("%Y-%m-%d %H:%M:%S")
-    return date.astimezone(tz=localtz).strftime("%Y-%m-%d %H:%M")
+    return date.astimezone(tz=localtz).strftime("%Y-%m-%d %H:%M:%S")
 
 
 JOB_FORMAT_FIELDS = [
