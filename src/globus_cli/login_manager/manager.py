@@ -9,6 +9,7 @@ from globus_sdk.scopes import (
     GCSEndpointScopeBuilder,
     GroupsScopes,
     SearchScopes,
+    TimerScopes,
     TransferScopes,
 )
 
@@ -33,6 +34,7 @@ class LoginManager:
     TRANSFER_RS = TransferScopes.resource_server
     GROUPS_RS = GroupsScopes.resource_server
     SEARCH_RS = SearchScopes.resource_server
+    TIMER_RS = TimerScopes.resource_server
 
     STATIC_SCOPES: Dict[str, List[str]] = {
         AUTH_RS: [
@@ -49,6 +51,9 @@ class LoginManager:
         ],
         SEARCH_RS: [
             SearchScopes.all,
+        ],
+        TIMER_RS: [
+            TimerScopes.timer,
         ],
     }
 
@@ -260,6 +265,10 @@ class LoginManager:
     def get_search_client(self) -> globus_sdk.SearchClient:
         authorizer = self._get_client_authorizer(SearchScopes.resource_server)
         return globus_sdk.SearchClient(authorizer=authorizer, app_name=version.app_name)
+
+    def get_timer_client(self) -> globus_sdk.TimerClient:
+        authorizer = self._get_client_authorizer(TimerScopes.resource_server)
+        return globus_sdk.TimerClient(authorizer=authorizer, app_name=version.app_name)
 
     def _get_gcs_info(
         self,

@@ -15,6 +15,7 @@ from globus_cli.commands.rm import rm_command
 from globus_cli.commands.search import search_command
 from globus_cli.commands.session import session_command
 from globus_cli.commands.task import task_command
+from globus_cli.commands.timer import timer_command
 from globus_cli.commands.transfer import transfer_command
 from globus_cli.commands.update import update_command
 from globus_cli.commands.version import version_command
@@ -64,3 +65,5 @@ main.add_command(session_command)
 main.add_command(group_command)
 
 main.add_command(search_command)
+
+main.add_command(timer_command)
