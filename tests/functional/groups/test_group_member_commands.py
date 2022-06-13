@@ -1,4 +1,5 @@
 import json
+import urllib.parse
 import uuid
 
 import pytest
@@ -15,7 +16,7 @@ from globus_sdk._testing import (
 def _register_group_action_responses():
     group_id = "efdab3ca-cff1-11e4-9b86-123139260d4e"
     identity_id = "00000000-0000-0000-0000-000000000001"
-    username = "test_user1"
+    username = "foo@example.org"
 
     common_action_metadata = {
         "group_id": group_id,
@@ -375,3 +376,77 @@ def test_group_member_simple_action_error(run_line, action, error_detail):
             assert "Could not reject the user" in result.stderr
         elif action == "invite":
             assert "Could not invite the user" in result.stderr
+
+
+def test_group_member_invite_by_username_no_such_user(run_line):
+    load_response(
+        RegisteredResponse(
+            service="auth", path="/v2/api/identities", json={"identities": []}
+        )
+    )
+    meta = load_response("group_member_invite").metadata
+    username = meta["username"]
+    group_id = meta["group_id"]
+    result = run_line(
+        f"globus group member invite {group_id} {username}", assert_exit_code=2
+    )
+    assert "Couldn't determine identity from user value:" in result.stderr
+    assert username in result.stderr
+
+
+@pytest.mark.parametrize("w_provision_option", (True, False))
+def test_group_member_invite_by_username(run_line, w_provision_option):
+    meta = load_response("group_member_invite").metadata
+    username = meta["username"]
+    identity_id = meta["identity_id"]
+    group_id = meta["group_id"]
+    load_response(
+        RegisteredResponse(
+            service="auth",
+            path="/v2/api/identities",
+            json={
+                "identities": [
+                    {
+                        "username": username,
+                        "name": "Foo McUser",
+                        "id": identity_id,
+                        "identity_provider": "c8abac57-560c-46c8-b386-f116ed8793d5",
+                        "organization": "McUser Group",
+                        "status": "used",
+                        "email": "foo.mcuser@globus.org",
+                    }
+                ]
+            },
+        )
+    )
+    add_args = []
+    if w_provision_option:
+        add_args = ["--provision-identity"]
+    run_line(["globus", "group", "member", "invite", group_id, username] + add_args)
+    assert len(responses.calls) >= 2
+    auth_request = next(
+        call.request
+        for call in responses.calls
+        if call.request.url.startswith("https://auth.globus.org/v2/api/identities")
+    )
+    groups_request = next(
+        call.request
+        for call in responses.calls
+        if call.request.url.startswith("https://groups.api.globus.org/")
+    )
+
+    auth_url = urllib.parse.urlparse(auth_request.url)
+    if w_provision_option:
+        auth_query = urllib.parse.parse_qs(auth_url.query)
+        assert "provision" in auth_query
+        assert auth_query["provision"] == ["true"]
+    else:
+        auth_query = urllib.parse.parse_qs(auth_url.query)
+        assert "provision" in auth_query
+        assert auth_query["provision"] == ["false"]
+
+    sent_data = json.loads(groups_request.body)
+    assert "invite" in sent_data
+    assert len(sent_data["invite"]) == 1
+    invite_data = sent_data["invite"][0]
+    assert invite_data["identity_id"] == identity_id
