@@ -1,7 +1,13 @@
 import datetime
 import re
-from typing import Any, Dict, Optional
+import sys
+from csv import DictReader
+from distutils.util import strtobool
+from typing import Any, Dict, Generator, List, Optional, Union
 from urllib.parse import urlparse
+
+import click
+from globus_sdk import GlobusError, TransferClient
 
 # List of datetime formats accepted as input. (`%z` means timezone.)
 DATETIME_FORMATS = [
@@ -72,6 +78,17 @@ JOB_FORMAT_FIELDS = [
     ("N. Timer Errors", lambda data: data["n_errors"]),
 ]
 
+DELETED_JOB_FORMAT_FIELDS = [
+    ("Job ID", "job_id"),
+    ("Name", "name"),
+    ("Type", _get_action_type),
+    ("Submitted At", lambda data: isoformat_to_local(data["submitted_at"])),
+    ("Start", lambda data: isoformat_to_local(data["start"])),
+    ("Interval", _get_interval),
+    ("Stop After Date", _get_stop_date),
+    ("Stop After N. Runs", _get_stop_n_runs),
+]
+
 START_HELP = """
 Start time for the job. Defaults to current time. (The example above shows the allowed
 formats using Python's datetime formatters; see:
@@ -79,7 +96,7 @@ https://docs.python.org/3/library/datetime.html #strftime-and-strptime-format-co
 """
 
 timedelta_regex = re.compile(
-    r"""\
+    r"""
     ^
     ((?P<weeks>\d+)w)?
     ((?P<days>\d+)d)?
@@ -90,3 +107,81 @@ timedelta_regex = re.compile(
     """,
     flags=re.VERBOSE,
 )
+
+
+def parse_timedelta(s: str) -> datetime.timedelta:
+    matches = timedelta_regex.match(s)
+    if not matches:
+        raise ValueError(f"couldn't parse timedelta from string: {s}")
+    groups = {k: int(v) for k, v in matches.groupdict(0).items()}
+    # timedelta accepts kwargs for units up through days, have to convert weeks
+    groups["days"] += groups.pop("weeks", 0) * 7
+    return datetime.timedelta(**groups)
+
+
+def read_csv(
+    file_name: str,
+    fieldnames: List[str],
+    comment_char: str = "#",
+) -> Generator[Dict[str, Union[str, bool]], None, None]:
+    def decomment(f):
+        for row in f:
+            if not row.startswith(comment_char):
+                yield row
+
+    def transform_val(k: str, v: str) -> Union[str, bool]:
+        v = v.strip()
+        if k == "recursive":
+            try:
+                return bool(strtobool(v))
+            except ValueError:
+                # "invalid truth value"
+                click.echo(f"In file {file_name}: couldn't parse {v} as a boolean")
+                sys.exit(1)
+        else:
+            return v
+
+    with open(file_name) as f:
+        reader = DictReader(decomment(f), fieldnames=fieldnames)
+        for row_dict in reader:
+            yield {k: transform_val(k, v) for k, v in row_dict.items()}
+
+
+def require_activated_endpoints(
+    transfer_client: TransferClient,
+    endpoints: List[str],
+    reactivate_if_expires_in: int = 86400,
+):
+    not_activated = []
+    for endpoint in endpoints:
+        try:
+            if not transfer_client.get_endpoint(endpoint).get("activated"):
+                not_activated.append(endpoint)
+        except GlobusError as e:
+            err_msg = "couldn't get information for endpoint {endpoint}"
+            code = getattr(e, "code", None)
+            msg = getattr(e, "message", None)
+            if code and msg:
+                err_msg += f": {code} {msg}"
+            click.echo(err_msg, err=True)
+            sys.exit(1)
+    still_not_activated = []
+    for endpoint in not_activated:
+        response = transfer_client.endpoint_autoactivate(
+            endpoint, if_expires_in=reactivate_if_expires_in
+        )
+        if response.get("code") == "AutoActivationFailed":
+            still_not_activated.append(endpoint)
+    if still_not_activated:
+        show_endpoints = ", ".join(still_not_activated)
+        click.echo(
+            f"Error: requested endpoint is not activated: {show_endpoints}\n"
+            "Open in the web app to activate:",
+            err=True,
+        )
+        for endpoint in still_not_activated:
+            click.echo(
+                f"    https://app.globus.org/file-manager?origin_id={endpoint}",
+                err=True,
+            )
+        sys.exit(1)
