@@ -7,7 +7,6 @@ from typing import Any, Dict, Generator, List, Optional, Union
 from urllib.parse import urlparse
 
 import click
-from globus_sdk import GlobusError, TransferClient
 
 # List of datetime formats accepted as input. (`%z` means timezone.)
 DATETIME_FORMATS = [
@@ -113,10 +112,7 @@ def parse_timedelta(s: str) -> datetime.timedelta:
     matches = timedelta_regex.match(s)
     if not matches:
         raise ValueError(f"couldn't parse timedelta from string: {s}")
-    groups = {k: int(v) for k, v in matches.groupdict(0).items()}
-    # timedelta accepts kwargs for units up through days, have to convert weeks
-    groups["days"] += groups.pop("weeks", 0) * 7
-    return datetime.timedelta(**groups)
+    return datetime.timedelta(**{k: int(v) for k, v in matches.groupdict(0).items()})
 
 
 def read_csv(
@@ -145,43 +141,3 @@ def read_csv(
         reader = DictReader(decomment(f), fieldnames=fieldnames)
         for row_dict in reader:
             yield {k: transform_val(k, v) for k, v in row_dict.items()}
-
-
-def require_activated_endpoints(
-    transfer_client: TransferClient,
-    endpoints: List[str],
-    reactivate_if_expires_in: int = 86400,
-):
-    not_activated = []
-    for endpoint in endpoints:
-        try:
-            if not transfer_client.get_endpoint(endpoint).get("activated"):
-                not_activated.append(endpoint)
-        except GlobusError as e:
-            err_msg = "couldn't get information for endpoint {endpoint}"
-            code = getattr(e, "code", None)
-            msg = getattr(e, "message", None)
-            if code and msg:
-                err_msg += f": {code} {msg}"
-            click.echo(err_msg, err=True)
-            sys.exit(1)
-    still_not_activated = []
-    for endpoint in not_activated:
-        response = transfer_client.endpoint_autoactivate(
-            endpoint, if_expires_in=reactivate_if_expires_in
-        )
-        if response.get("code") == "AutoActivationFailed":
-            still_not_activated.append(endpoint)
-    if still_not_activated:
-        show_endpoints = ", ".join(still_not_activated)
-        click.echo(
-            f"Error: requested endpoint is not activated: {show_endpoints}\n"
-            "Open in the web app to activate:",
-            err=True,
-        )
-        for endpoint in still_not_activated:
-            click.echo(
-                f"    https://app.globus.org/file-manager?origin_id={endpoint}",
-                err=True,
-            )
-        sys.exit(1)

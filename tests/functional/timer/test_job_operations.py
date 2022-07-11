@@ -6,7 +6,7 @@ from unittest import mock
 import pytest
 import responses
 from globus_sdk import TimerClient, TransferClient
-from globus_sdk._testing import load_response_set
+from globus_sdk._testing import RegisteredResponse, load_response_set
 
 from globus_cli.commands.timer._common import JOB_FORMAT_FIELDS
 
@@ -89,6 +89,8 @@ def test_create_job(run_line, extra_args, monkeypatch):
     meta = load_response_set(TimerClient.create_job).metadata
     meta_endpoints = load_response_set(TransferClient.get_endpoint).metadata
     assert meta
+    assert meta_endpoints
+    eid = meta_endpoints["endpoint_id"]
     base_args = [
         "globus",
         "timer",
@@ -97,27 +99,27 @@ def test_create_job(run_line, extra_args, monkeypatch):
         "--name",
         "test-transfer-command",
         "--source-endpoint",
-        meta_endpoints["endpoint_id"],
+        eid,
         "--dest-endpoint",
-        meta_endpoints["endpoint_id"],
+        eid,
         "--item",
         "/file_a",
         "/file_b",
         "false",
     ]
     load_response_set("cli.get_submission_id")
-    mock_require_activated = mock.MagicMock()
-    monkeypatch.setattr(
-        "globus_cli.commands.timer.create.require_activated_endpoints",
-        mock_require_activated,
-    )
+    RegisteredResponse(
+        path=f"/endpoint/{eid}/autoactivate",
+        service="transfer",
+        method="POST",
+        json={"code": "Activated.BogusCode"},
+    ).add()
     mock_login_flow = mock.MagicMock()
     monkeypatch.setattr(
         "globus_cli.login_manager.LoginManager.run_login_flow", mock_login_flow
     )
     result = run_line(base_args + extra_args)
     assert result.exit_code == 0
-    assert mock_require_activated.called
     assert mock_login_flow.called
 
 

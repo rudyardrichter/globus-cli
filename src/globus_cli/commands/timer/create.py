@@ -1,9 +1,11 @@
 import datetime
+from enum import Enum
 from typing import List, Optional, Tuple, cast
 
 import click
 from globus_sdk import TimerJob, TransferData
 
+from globus_cli.commands.transfer import autoactivate
 from globus_cli.login_manager import LoginManager
 from globus_cli.parsing import command, group, mutex_option_group
 from globus_cli.termio import FORMAT_TEXT_RECORD, formatted_print
@@ -14,7 +16,6 @@ from ._common import (
     START_HELP,
     parse_timedelta,
     read_csv,
-    require_activated_endpoints,
 )
 
 INTERVAL_HELP = """
@@ -23,6 +24,13 @@ INTERVAL_HELP = """
     '24h', '1d 12h', '2w', etc. Must be in order: hours -> minutes -> seconds. You
     should either use quotes ('1d 2h') or write without spaces (1d2h).
 """
+
+
+class SyncLevel(Enum):
+    exists = 0
+    size = 1
+    mtime = 2
+    checksum = 3
 
 
 @group("create", short_help="Submit a Timer job", hidden=True)
@@ -85,15 +93,11 @@ def create_command():
 @click.option(
     "--sync-level",
     required=False,
-    type=int,
+    default=None,
+    type=click.Choice(("exists", "size", "mtime", "checksum"), case_sensitive=False),
     help=(
-        "Specify that only new or modified files should be transferred. The behavior"
-        " depends on the value of this parameter, which must be a value 0–3, as"
-        " defined in the transfer API: 0. Copy files that do not exist at the"
-        " destination. 1. Copy files if the size of the destination does not match the"
-        " size of the source. 2. Copy files if the timestamp of the destination is"
-        " older than the timestamp of the source. 3. Copy files if checksums of the"
-        " source and destination do not match."
+        "Specify that only new or modified files should be transferred, depending on"
+        " which setting is provided"
     ),
 )
 @click.option(
@@ -192,7 +196,7 @@ def transfer(
     label: Optional[str],
     stop_after_date: Optional[datetime.datetime],
     stop_after_runs: Optional[int],
-    sync_level: Optional[int],
+    sync_level: Optional[str],
     encrypt_data: bool,
     verify_checksum: bool,
     preserve_timestamp: bool,
@@ -226,21 +230,24 @@ def transfer(
     assert transfer_client.scopes is not None
 
     # Check endpoint activation, figure out scopes needed.
-    #
+    for ep in [source_endpoint, dest_endpoint]:
+        # Note this will provide help text on activating endpoints.
+        autoactivate(transfer_client, ep, if_expires_in=86400)
+
     # FOR NOW: we will only ask for the basic transfer action provider scope, and ignore
     # anything to do with the endpoints themselves.
-    endpoints = [source_endpoint, dest_endpoint]
-    require_activated_endpoints(transfer_client, endpoints)
-
     scope = "https://auth.globus.org/scopes/actions.globus.org/transfer/transfer"
     login_manager.run_login_flow(scopes=[str(scope)])
+    sync_level_int = None
+    if sync_level:
+        sync_level_int = SyncLevel[sync_level].value
 
     transfer_data = TransferData(
         transfer_client,
         source_endpoint,
         dest_endpoint,
         label=label,
-        sync_level=sync_level,
+        sync_level=sync_level_int,
         verify_checksum=verify_checksum,
         preserve_timestamp=preserve_timestamp,
         encrypt_data=encrypt_data,
